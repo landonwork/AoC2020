@@ -1164,9 +1164,132 @@ for t in range(1,7):
 print(arr.sum())
 
 # Day 18
+file_reader = open('Day 18.txt','r')
+lines = file_reader.readlines()
+lines = [line.replace('\n','').replace(' ','') for line in lines]
+
+# Parts 1 and 2
+def add(a,b):
+    return a + b
+
+def mult(a,b):
+    return a * b
+
+def find_expr(s,start):
+    closed = False
+    nxt_opn = start
+    nxt_cls = start
+    while not closed:
+        nxt_opn = s.find('(',nxt_opn+1)
+        nxt_cls = s.find(')',nxt_cls+1)
+        if (nxt_opn == -1) | (nxt_opn > nxt_cls):
+            closed = True
+    return s[start+1:nxt_cls]
+
+def new_math(s):
+    i = 0
+    if s[0] == '(':
+        expr = find_expr(s,0)
+        # print(expr)
+        a = new_math(expr)
+        i += len(expr)+1
+    else:
+        a = int(s[0])
+    # print(s[0])
+    oper = None # short for operator
+    i += 1
+    while i < len(s):
+        # print(s[i])
+        switcher = {'+':add,'*':mult}
+        if (s[i] == '+') | (s[i] ==  '*'):
+            oper = switcher[s[i]] # Part 1 version
+            # Addition for Part 2
+            if s[i] == '*':
+                expr = s[i+1:]
+                b = new_math(expr)
+                a = oper(a,b)
+                i += len(expr)
+        else:
+            if s[i] == '(':
+                expr = find_expr(s,i)
+                b = new_math(expr)
+                i += len(expr) + 1 # Gotta skip ahead
+            else:
+                b = int(s[i])
+            a = oper(a,b)
+            # print(a)
+        i += 1
+    return a
+
+results = []
+for i, line in enumerate(lines):
+    # print(i)
+    results.append(new_math(line))
 
 # Day 19
+# Read and clean
+file_reader = open('Day 19.txt')
+lines = file_reader.readlines()
 
+# Part 1
+rule_lines = []
+messages = []
+li = rule_lines
+for line in lines:
+    if line == '\n':
+        li = messages
+        continue
+    li.append(line.replace('\n',''))
+del li
+
+def build_rule(s: str):
+    
+    def rule(rules):
+        li = s.split(' ')
+        line = '('
+        for item in li:
+            if item == '|':
+                line = line + '|'
+            elif item.startswith('"'):
+                line = line + item[1]
+            else:
+                line = line + rules[item](rules)
+        line = line + ')'
+        return line
+    
+    return rule
+
+import regex
+rules = {}
+get_num = regex.compile('(?P<num>\d+):')
+for line in rule_lines:
+    m = get_num.match(line)
+    num =  m.group('num')
+    rules.update({num:build_rule(line[m.span()[1]+1:])})
+
+def execute_rule(rules, num: str, message: str):
+    matcher = regex.compile(rules[num](rules))
+    m = matcher.fullmatch(message)
+    return m is not None
+
+ans = 0
+for message in messages:
+    ans += execute_rule(rules, '0', message)
+    
+# Part 2
+def rule_eight(rules):
+    return '(' + rules['42'](rules) + ')+'
+    
+def rule_eleven(rules):
+    return '(?P<one>' + rules['42'](rules) + rules['31'](rules) + '|' + rules['42'](rules) + '(?P>one)' + rules['31'](rules) + ')'
+
+rules.update({'8':rule_eight,'11':rule_eleven})
+# regex.fullmatch('c(?P<one>ab|a(?P>one)b)','caaabbb') is not None
+
+ans = 0
+for message in messages:
+    ans += execute_rule(rules, '0', message)
+print(ans)
 # Day 20
 
 # Day 22
