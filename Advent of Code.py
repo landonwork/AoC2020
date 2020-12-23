@@ -1017,4 +1017,162 @@ for row in range(nearby.shape[0]):
             error_rate += nearby[row,col]
 print(error_rate)
 
-# Part 2 - it looks crazy involved; I'ma take a break
+# Part 2
+for key in dfields.keys():
+    li = [make_range(s) for s in dfields[key]]
+    dfields[key] = list_union(li[0],li[1:])
+    
+valid = []
+invalid = []
+for row in range(nearby.shape[0]):
+    error = False
+    for col in range(nearby.shape[1]):
+        if {nearby[row,col]}.isdisjoint(all_fields):
+            error = True
+    if not error:
+        valid.append(nearby[row,:])
+    else:
+        invalid.append(nearby[row,:])
+valid = np.array(valid)
+invalid = np.array(valid)
+
+match = []
+for col in range(valid.shape[1]):
+    s = set(valid[:,col])
+    li = []
+    for key in dfields.keys():
+        if s.issubset(dfields[key]):
+            li.append(key)
+    match.append(li)
+    
+lens = [len(li) for li in match]
+hist = []
+
+for n in range(1,21):
+    ind = lens.index(1)
+    while ind in hist:
+        ind = lens.index(1,ind+1)
+    hist.append(ind)
+    name = match[ind][0]
+    for i in range(len(match)):
+        if i == ind:
+            continue
+        if name in match[i]:
+            print(' removing...')
+            match[i].remove(name)
+    lens = [len(li) for li in match]
+    
+ans = 1.
+for i, name in enumerate(match):
+    name = name[0]
+    if name.startswith('departure'):
+        ans *= my_ticket[i]
+        
+# Day 17
+# Read and clean
+file_reader = open('Day 17.txt','r')
+lines = file_reader.readlines()
+lines = [list(line.replace('#','1').replace('.','0').replace('\n','')) for line in lines]
+
+# Part 1
+import numpy as np
+lines = np.array(lines).astype(int)
+arr = np.zeros((lines.shape[0],lines.shape[1],1))
+arr[:,:,0] = lines
+
+def expand_pocket(arr):
+    expansion = np.zeros((arr.shape[0]+2,arr.shape[1]+2,arr.shape[2]+2))
+    expansion[1:-1,1:-1,1:-1] = arr
+    return expansion
+    
+def get_neighbors(arr,x,y,z):
+    return arr[x-1:x+2,y-1:y+2,z-1:z+2].sum() - arr[x,y,z]
+
+def change_state(arr,shape):
+    new_arr = np.zeros(arr.shape)
+    for i in range(1,shape[0]+1):
+        for j in range(1, shape[1]+1):
+            for k in range(1, shape[2]+1):
+                num = get_neighbors(arr,i,j,k)
+                if num == 3:
+                    new_arr[i,j,k] = 1
+                    continue
+                if (num == 2) & (arr[i,j,k] == 1):
+                    new_arr[i,j,k] = 1
+    return new_arr
+
+def print_z(arr):
+    for z in range(0,arr.shape[2]):
+        print(f'z={z}:')
+        print(arr[:,:,z])
+
+# Giving arr some extra padding
+arr = expand_pocket(arr)
+
+# Time starts at t=0
+# hist = [arr]
+for t in range(1,7):
+    new_arr = expand_pocket(arr)
+    new_arr = change_state(new_arr,arr.shape)
+    # hist.append(new_arr)
+    arr = new_arr
+print(arr.sum())
+    
+# Part 2 (It's literally the same thing with 4 dimensions)
+# import numpy as np
+# lines = np.array(lines).astype(int)
+arr = np.zeros((lines.shape[0],lines.shape[1],1,1))
+arr[:,:,0,0] = lines
+
+def expand_hyper(arr):
+    expansion = np.zeros((arr.shape[0]+2,arr.shape[1]+2,arr.shape[2]+2,arr.shape[3]+2))
+    expansion[1:-1,1:-1,1:-1,1:-1] = arr
+    return expansion
+    
+def hyper_neighbors(arr,x,y,z,w):
+    return arr[x-1:x+2,y-1:y+2,z-1:z+2,w-1:w+2].sum() - arr[x,y,z,w]
+
+def change_hyper(arr,shape):
+    new_arr = np.zeros(arr.shape)
+    for i in range(1,shape[0]+1):
+        for j in range(1, shape[1]+1):
+            for k in range(1, shape[2]+1):
+                for l in range(1, shape[3]+1):
+                    num = hyper_neighbors(arr,i,j,k,l)
+                    if num == 3:
+                        new_arr[i,j,k,l] = 1
+                        continue
+                    if (num == 2) & (arr[i,j,k,l] == 1):
+                        new_arr[i,j,k,l] = 1
+    return new_arr
+
+# def print_hyperz(arr):
+#     for z in range(0,arr.shape[2]):
+#         print(f'z={z}:')
+#         print(arr[:,:,z,:])
+
+# Giving arr some extra padding
+arr = expand_hyper(arr)
+
+# Time starts at t=0
+# hist = [arr]
+for t in range(1,7):
+    new_arr = expand_hyper(arr)
+    new_arr = change_hyper(new_arr,arr.shape)
+    # hist.append(new_arr)
+    arr = new_arr
+print(arr.sum())
+
+# Day 18
+
+# Day 19
+
+# Day 20
+
+# Day 22
+
+# Day 23
+
+# Day 24
+
+# Day 25
