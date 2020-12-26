@@ -899,33 +899,7 @@ print(sum(mem.values()))
 # Nothing to clean
 starters = [0,6,1,7,2,19,20]
 
-# Part 1
-# def get_age(li,num) -> int:
-#     return [i for i, x in enumerate(li) if x == num][-2]+1
-
-hist = []
-nums = set()
-first = False
-n = 1
-for num in starters:
-    hist.append(num)
-    first = num not in nums
-    nums.add(num)
-    n += 1
-while n <= 2020:
-    # print('Last round:', num, first)
-    if first:
-        num = 0
-    else:
-        num = n - get_age(hist,num) - 1
-    first = num not in nums
-    # print('This round:', num, first)
-    # input()
-    hist.append(num)
-    nums.add(num)
-    n+=1
-print(hist[-1])
-
+# Parts 1 and 2
 
 # Part 2
 # rounds = 2020
@@ -1275,6 +1249,7 @@ def execute_rule(rules, num: str, message: str):
 ans = 0
 for message in messages:
     ans += execute_rule(rules, '0', message)
+print(ans)
     
 # Part 2
 def rule_eight(rules):
@@ -1290,7 +1265,176 @@ ans = 0
 for message in messages:
     ans += execute_rule(rules, '0', message)
 print(ans)
+
 # Day 20
+# Create a list of the tiles
+# Identify the four edges of each tile
+# Create a list of edge counters (counting which edges don't have matches)
+# Sum the IDs of the tiles with 2 edges facing out
+
+# Read and clean
+lines = ([line.replace('\n','') for line in open('Day 20.txt','r').readlines()])
+
+import re
+import numpy as np
+tiles = {}
+tile = []
+for line in lines:
+    if line.startswith('Tile'):
+        tile_id = re.search('\d+',line).group()
+    elif line == '':
+        tiles.update({int(tile_id):np.array(tile).astype(int)})
+        tile = []
+    else:
+        tile.append(list(line.replace('#','1').replace('.','0')))
+del tile_id, tile, line
+
+# Part 1
+def get_edges(arr):
+    return [arr[0,:],arr[-1,:],arr[:,0],arr[:,-1]]
+edge_types = {0:'top',1:'bottom',2:'left',3:'right'}
+
+inside_edges = dict(zip(list(tiles.keys()),[0 for n in tiles]))
+edge_matches = []
+for i in range(len(tiles)):
+    my_id = list(tiles.keys())[i]
+    t = tiles[my_id]
+    my_edges = get_edges(t)
+    for j in range(i+1,len(tiles)):
+        their_id = list(tiles.keys())[j]
+        u = tiles[their_id]
+        their_edges = get_edges(u)
+        for k in range(len(my_edges)):
+            for l in range(len(their_edges)):
+                if np.array_equal(my_edges[k], their_edges[l]) or np.array_equal(np.flip(my_edges[k]), their_edges[l]):
+                    inside_edges[my_id] += 1
+                    inside_edges[their_id] += 1
+                    edge_matches.append({my_id,their_id})
+                    # if 1439 == my_id:
+                    #     print(edge_types[k])
+                    #     if np.array_equal(np.flip(my_edges[k]),their_edges[l]):
+                    #         print('flipped')
+                    # elif 1439 == their_id:
+                    #     print(edge_types[l])
+                    #     if np.array_equal(np.flip(my_edges[k]),their_edges[l]):
+                    #         print('flipped')
+                    
+
+ans = 1.
+for key in inside_edges:
+    if inside_edges[key] == 2:
+        ans *= key
+del key
+print(ans)
+
+# Part 2
+
+corners = [key for key in tiles.keys() if inside_edges[key] == 2]
+# borders = [key for key in tiles.keys() if inside_edges[key] == 3]
+# middle  = [key for key in tiles.keys() if inside_edges[key] == 4]
+
+def find_matches(*tile_ids): # Receives either one or two ids
+    sets = []
+    for tile_id in tile_ids:
+        s = set()
+        for pair in edge_matches:
+            if tile_id in pair:
+                s = s.union(pair)
+        sets.append(s.difference({tile_id}))
+    if len(sets) == 1:
+        return sets[0]
+    else:
+        return sets[0].intersection(sets[1])
+        
+# K. So I'm using tile 1439 (corners[1]) as the top left corner of the image
+image = np.zeros((12*10,12*10))
+image[0:10,0:10] = tiles[1439]
+grid = np.zeros((12,12))
+grid[0,0] = 1439
+
+left = False
+for row in range(12):
+    for col in range(12):
+        if (row == 0) & (col == 0):
+            continue
+        else:
+            if row == 0:
+                matches = find_matches(grid[row,col-1])
+            elif col == 0:
+                matches = find_matches(grid[row-1,col])
+                left = True
+            else:
+                matches = find_matches(grid[row-1,col],grid[row,col-1])
+            fit = False
+            for match in matches:
+                for flip in [False,True]:
+                    for rot in range(4):
+                        if left:
+                            my_edge = tiles[match][0,:]
+                            their_edge = image[row*10-1,col*10:(col+1)*10]
+                        else:
+                            my_edge = tiles[match][:,0]
+                            their_edge = image[row*10:(row+1)*10,col*10-1]
+                        if np.array_equal(my_edge,their_edge):
+                            fit = True
+                            image[row*10:(row+1)*10,col*10:(col+1)*10] = tiles[match]
+                            grid[row,col] = match
+                            break
+                        else:
+                            tiles[match] = np.rot90(tiles[match])
+                    if fit:
+                        break
+                    else:
+                        tiles[match] = np.flip(tiles[match],axis=0)
+                if fit:
+                    break
+        left = False
+                
+for i in range(12):
+    for j in range(12):
+        if int(grid[i,j]) not in tiles.keys():
+            print('uhoh')
+            #Sooooo, I think it actually worked.
+
+# Now to find the sea monsters
+# First, remove the unnecessary columns and rows
+# Then write a function that can find sea monsters
+# Then remove the '1' pixels with sea monsters
+# and count the remaining '1' pixels
+
+steps = (9,1)
+for axis in [0,1]:
+    ind = 119
+    for i in range(24):
+        image = np.delete(image,ind,axis)
+        ind -= steps[i%2]
+image = image.astype(int)
+
+def find_pattern(arr,pattern):
+    h, w = arr.shape[0], arr.shape[1]
+    h_p, w_p = pattern.shape[0], pattern.shape[1]
+    li = []
+    for row in range(h-h_p+1):
+        for col in range(w-w_p+1):
+             if np.array_equal(pattern,arr[row:row+h_p,col:col+w_p]*pattern):
+                 li.append((row,col))
+    return li
+
+sea_monster = np.array([[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0],
+                        [1,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,1,1,1],
+                        [0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,0]])
+
+# Not the most elegant to orient the image, but it worked
+while not find_pattern(image,sea_monster):
+    image = np.rot90(image)
+image = np.flip(image,axis = 0)
+
+for coor in find_pattern(image,sea_monster):
+    image[coor[0]:coor[0]+sea_monster.shape[0],coor[1]:coor[1]+sea_monster.shape[1]] -= sea_monster
+print(image.sum())
+# I did it XD
+
+# Day 21
 
 # Day 22
 
