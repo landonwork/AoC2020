@@ -1435,8 +1435,144 @@ print(image.sum())
 # I did it XD
 
 # Day 21
+# Read and clean
+lines = ([line.replace('\n','') for line in open('Day 21.txt','r').readlines()])
+
+# Part 1
+foods = [line.split(' ') for line in lines]
+ingredients = set()
+allergens = set()
+allergen_locs = {}
+for food in foods:
+    s = ingredients
+    a = set()
+    for item in food:
+        if item == '(contains':
+            s = allergens
+            continue
+        item = item.replace(')','').replace(',','')
+        if s is ingredients:
+            a.add(item)
+        else:
+            if item not in allergens:
+                allergen_locs.update({item:a})
+            else:
+                allergen_locs[item] = allergen_locs[item].intersection(a)
+        s.add(item)
+
+maybe_allergen = set()
+for locs in allergen_locs.values():
+    maybe_allergen = maybe_allergen.union(locs)
+no_allergen = ingredients.difference(maybe_allergen)
+
+ans = 0
+for food in foods:
+    for item in food:
+        if item == '(contains':
+            break
+        if item in no_allergen:
+            ans += 1
+print(ans)
+
+# Part 2
+keys = list(allergen_locs.keys())
+lens = [len(allergen_locs[key]) for key in keys]
+hist = []
+
+for n in range(len(allergens)):
+    ind = lens.index(1)
+    while ind in hist:
+        ind = lens.index(1,ind+1)
+    hist.append(ind)
+    ingredient = next(iter(allergen_locs[keys[ind]]))
+    for i in range(len(allergen_locs)):
+        if i == ind:
+            continue
+        if ingredient in allergen_locs[keys[i]]:
+            print('Removing...')
+            allergen_locs[keys[i]].remove(ingredient)
+    lens = [len(allergen_locs[key]) for key in keys]
+    
+l = ''
+keys.sort()
+for key in keys:
+    l = l + next(iter(allergen_locs[key])) + ','
+l = l[:-1]
+print(l)
 
 # Day 22
+# Read and clean
+lines = ([line.replace('\n','') for line in open('Day 22.txt','r').readlines()])
+example =  ['Player 1:',
+            '9',
+            '2',
+            '6',
+            '3',
+            '1',
+            '',
+            'Player 2:',
+            '5',
+            '8',
+            '4',
+            '7',
+            '10']
+
+def initialize(lines): # Made restarting and testing examples much easier
+    players = [[],[]]
+    n = 0
+    for line in lines:
+        if line.startswith('P'):
+            continue
+        if line == '':
+            n += 1
+            continue
+        players[n].append(int(line))
+    return players
+
+# Part 1
+def play_game(players):
+    win = False
+    while not win:
+        winner = int(players[0][0] < players[1][0]) # 0 if player 0 wins, 1 if player 1 wins
+        players[winner].append(players[winner].pop(0))
+        players[winner].append(players[1-winner].pop(0))
+        win = (not bool(players[0])) | (not bool(players[1]))
+    return players
+
+play_game(players)
+
+ans = 0
+for i, card in enumerate(players[0]):
+    ans += card * (len(players[0])-i)
+print(ans)
+
+# Part 2
+def recursive_combat(players):
+    win = False
+    hist = []
+    while not win:
+        if players in hist:
+            return 0
+        hist.append([players[0].copy(),players[1].copy()])
+        draws = [players[0].pop(0),players[1].pop(0)]
+        if (draws[0] <= len(players[0])) & (draws[1] <= len(players[1])):
+            winner = recursive_combat([players[0][:draws[0]].copy(),players[1][:draws[1]].copy()])
+        else:
+            winner = int(draws[0] < draws[1])
+        players[winner].append(draws[winner])
+        players[winner].append(draws[1-winner])
+        win = (not bool(players[0])) | (not bool(players[1]))
+    return winner
+
+# Reset the decks
+players = initialize(lines)
+# And begin
+winner = recursive_combat(players)
+
+ans = 0
+for i, card in enumerate(players[winner]):
+    ans += card * (len(players[winner])-i)
+print(ans)
 
 # Day 23
 
