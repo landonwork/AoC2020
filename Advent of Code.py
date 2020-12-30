@@ -99,6 +99,7 @@ print(count)
 # Reading the file and cleaning the data
 file_reader = open('Day 4.txt','r')
 lines = file_reader.readlines()
+file_reader.close()
 passports = []
 info = ''
 for line in lines:
@@ -210,7 +211,7 @@ for row in df.index:
     if len(df['hcl'].loc[row]) != 7:
         df = df.drop(row,axis='index')
         continue
-    print(len(df['ecl'].loc[row]))
+    # print(len(df['ecl'].loc[row]))
     if len(df['pid'].loc[row]) != 9:
         df = df.drop(row,axis='index')
         continue
@@ -1575,6 +1576,57 @@ for i, card in enumerate(players[winner]):
 print(ans)
 
 # Day 23
+
+def crab_cups(cups, num_rounds):
+    round_n = 1
+    ind = 0
+    while round_n <= num_rounds:
+        # print(f'\n-- move {round_n} --')
+        cups, ind = move_cups(cups, ind)
+        round_n += 1
+    return cups
+
+def move_cups(cups, ind):
+    current = cups[ind]
+    # print('cups:', cups)
+    # print('current:',current)
+    
+    if ind + 4 >= len(cups):
+        pickup = cups[ind+1:] + cups[:(ind+4)%len(cups)]
+        cups = cups[(ind+4)%len(cups):ind+1]
+    else:
+        pickup = cups[ind+1:ind+4]
+        del cups[ind+1:ind+4]
+    # print('pickup:', pickup)
+            
+    dest = current - 1
+    while dest in pickup or dest < 1:
+        dest = len(cups)+3 if dest <= 1 else dest - 1
+    # print('destination:', dest)
+    
+    insert = cups.index(dest) + 1 # This line is slow
+    cups = cups[:insert] + pickup + cups[insert:]
+    ind = (cups.index(current) + 1) % len(cups) # So is this one
+    return cups, ind
+
+cups = [7,1,6,8,9,2,5,4,3]
+cups.extend(list(range(10,1000001)))
+ans2 = crab_cups(cups, 1000)
+
+# Part 1 Answer
+
+cups = [7,1,6,8,9,2,5,4,3]
+example = [3,8,9,1,2,5,4,6,7]
+
+ans1 = crab_cups(cups,100)
+ex = crab_cups(example,10)
+
+# Part 2 Answer
+cups = [7,1,6,8,9,2,5,4,3]
+example = [3,8,9,1,2,5,4,6,7]
+cups.extend(list(range(10,1000001)))
+
+ans2 = crab_cups(cups,10000000) # One million cups and ten million moves
 
 # Day 24
 
