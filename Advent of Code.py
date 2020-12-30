@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+3# -*- coding: utf-8 -*-
 """
 Created on Wed Dec 16 18:34:20 2020
 
@@ -1608,26 +1608,174 @@ def move_cups(cups, ind):
     cups = cups[:insert] + pickup + cups[insert:]
     ind = (cups.index(current) + 1) % len(cups) # So is this one
     return cups, ind
-
-cups = [7,1,6,8,9,2,5,4,3]
-cups.extend(list(range(10,1000001)))
-ans2 = crab_cups(cups, 1000)
-
+# This works for part 1 but it is not fast enough for part 2
 # Part 1 Answer
 
 cups = [7,1,6,8,9,2,5,4,3]
-example = [3,8,9,1,2,5,4,6,7]
-
 ans1 = crab_cups(cups,100)
-ex = crab_cups(example,10)
+# example = [3,8,9,1,2,5,4,6,7]
+# ex = crab_cups(example,1)
 
-# Part 2 Answer
-cups = [7,1,6,8,9,2,5,4,3]
-example = [3,8,9,1,2,5,4,6,7]
-cups.extend(list(range(10,1000001)))
+# Part 2
 
-ans2 = crab_cups(cups,10000000) # One million cups and ten million moves
+# A Python user on Reddit suggests a linked list where the nth element in the list points to the cup that follows the nth cup flowing clockwise
+import numpy as np
+# from numba import njit
+def build_links(li):
+    links = np.full((len(li)+1,),0).astype(int)
+    for i, num in enumerate(li): links[num] = li[(i+1)%len(li)]
+    return links
+
+def linked_cups(links,num_rounds,start):
+    current = start
+    n_round = 1
+    while n_round <= num_rounds:
+        print(n_round)
+        links, current = adjust_links(links,current)
+        n_round += 1
+    return links
+
+def adjust_links(links,current):
+    # print_links(links)
+    # print('Current: ', current)
+    next_three = [follow_link(links,current,d) for d in range(1,4)]
+    dest = current - 1
+    while dest in next_three or dest == 0:
+        dest = dest - 1
+        if dest == 0:
+            dest = len(links) - 1
+    # print('Destination:', dest)
+    
+    links[current] = follow_link(links,current,4) # Cut out the next three
+    links[next_three[-1]] = links[dest] # Stitch those three in after the destination
+    links[dest] = next_three[0]
+    return links, links[current]
+
+def follow_link(links,i,depth):
+    if depth == 1: return links[i]
+    elif depth > 1: return follow_link(links,links[i],depth-1)
+    else: return i
+    
+def print_links(links):
+    li = [follow_link(links,1,i) for i in range(len(links))]
+    print(li)
+
+# example = [3,8,9,1,2,5,4,6,7]
+# example_links = build_links(example)
+# test = linked_cups(example_links,10,example[0])
+
+cups = [7,1,6,8,9,2,5,4,3] + list(range(10,1000001))
+links = build_links(cups)
+ans2 = linked_cups(links,10000000,cups[0])
+x = follow_link(ans2,1,1)
+y = follow_link(ans2,1,2)
+print(float(x)*y)
 
 # Day 24
+tiles = [line.strip() for line in open('Day 24.txt','r').readlines()]
+example = [line.strip() for line in open('Day 24 example.txt','r').readlines()]
+
+# Part 1
+import numpy as np
+def flip_tiles(li):
+    floor = {}
+    for tile in li:
+        coor = get_coor(tile)
+        floor.update({tuple(coor):1-bool(floor.get(tuple(coor)))})
+    return floor
+
+def get_coor(tile):
+    coor = np.zeros(2)
+    moves = {'w':(-1,0),'e':(1,0),'se':(0,-1),
+             'sw':(-1,-1),'ne':(1,1),'nw':(0,1)}
+    i = 0
+    while i < len(tile):
+        if tile[i] == 's' or tile[i] == 'n':
+            direction = tile[i] + tile[i+1]
+            i += 1
+        else:
+            direction = tile[i]
+        # print(direction)
+        coor += np.array(moves[direction])
+        i += 1
+    return tuple(coor)
+
+ans = flip_tiles(tiles)
+print(sum(ans.values()))
+
+ex_ans = flip_tiles(example)
+
+# Part 2
+# So now we know hich tiles are flipped over and we can proceed to build a map
+# Very similar to the Conway game
+# Gotta stick all the tiles onto a grid
+coors = np.array(list(ans.keys())).astype(int)
+coors[:,0] -= min(coors[:,0])
+coors[:,1] -= min(coors[:,1])
+floor = dict(zip([tuple(coor) for coor in coors],list(ans.values())))
+
+floor_map = np.zeros((int(max(coors[:,0]))+1,int(max(coors[:,1]))+1))
+for coor in coors:
+    floor_map[coor[0],coor[1]] = bool(floor.get(tuple(coor)))
+
+# And then we can begin
+def living_art(floor,n):
+    t = 0
+    print(f'Day {t}: {floor.sum()}')
+    while t < n:
+        new_floor = expand_floor(floor)
+        new_floor = change(new_floor,floor.shape)
+        floor = new_floor
+        t += 1
+        print(f'Day {t}: {floor.sum()}')
+    return floor
+
+def change(floor, shape):
+    new_floor = floor.copy()
+    for x in range(1,shape[0]+1):
+        for y in range(1, shape[1]+1):
+            num = get_adjacent(floor,x,y)
+            color = floor[x,y]
+            if (num == 0 or num > 2) and color == 1:
+                # print('flipped',x,y)
+                new_floor[x,y] = 0
+            if num == 2 and color == 0:
+                new_floor[x,y] = 1
+    return new_floor
+
+def get_adjacent(arr,x,y):
+    return int(arr[x-1:x+2,y-1:y+2].sum() - arr[x,y] - arr[x-1,y+1] - arr[x+1,y-1])
+
+def expand_floor(arr):
+    expansion = np.zeros((arr.shape[0]+2,arr.shape[1]+2))
+    expansion[1:-1,1:-1] = arr
+    return expansion
+
+floor_map = expand_floor(floor_map)
+n = 100
+ans = living_art(floor_map,n)
+print(ans.sum())
+
 
 # Day 25
+
+pub1, pub2 = 15733400, 6408062
+sub = 7
+
+# Part 1
+
+def get_loop_size(sub,key):
+    n = 1
+    loop_size = 0
+    while n != key:
+        n = n * sub % 20201227
+        loop_size += 1
+    return loop_size
+
+size1 = get_loop_size(sub,pub1)
+size2 = get_loop_size(sub,pub2)
+print(pow(pub1,size2,20201227))
+print(pow(pub2,size1,20201227))
+
+# Part 2
+# Awwww. It's a freebie!. Merry Christmas!
