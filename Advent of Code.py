@@ -1620,56 +1620,51 @@ ans1 = crab_cups(cups,100)
 
 # A Python user on Reddit suggests a linked list where the nth element in the list points to the cup that follows the nth cup flowing clockwise
 import numpy as np
-# from numba import njit
+from numba import njit
+import time
+
+@njit
 def build_links(li):
-    links = np.full((len(li)+1,),0).astype(int)
+    links = np.zeros((len(li)+1,),dtype=np.uint32)
     for i, num in enumerate(li): links[num] = li[(i+1)%len(li)]
     return links
 
+@njit
 def linked_cups(links,num_rounds,start):
     current = start
     n_round = 1
     while n_round <= num_rounds:
-        print(n_round)
         links, current = adjust_links(links,current)
         n_round += 1
     return links
 
+@njit
 def adjust_links(links,current):
-    # print_links(links)
-    # print('Current: ', current)
-    next_three = [follow_link(links,current,d) for d in range(1,4)]
+    next_1 = links[current]
+    next_2 = links[next_1]
+    next_3 = links[next_2]
+    after_pickup = links[next_3]
+    
     dest = current - 1
-    while dest in next_three or dest == 0:
+    while dest in (next_1,next_2,next_3) or dest == 0:
         dest = dest - 1
         if dest == 0:
             dest = len(links) - 1
-    # print('Destination:', dest)
     
-    links[current] = follow_link(links,current,4) # Cut out the next three
-    links[next_three[-1]] = links[dest] # Stitch those three in after the destination
-    links[dest] = next_three[0]
-    return links, links[current]
-
-def follow_link(links,i,depth):
-    if depth == 1: return links[i]
-    elif depth > 1: return follow_link(links,links[i],depth-1)
-    else: return i
+    links[current] = after_pickup # Cut out the next three
+    links[next_3] = links[dest] # Stitch those three in after the destination
+    links[dest] = next_1
+    return links, after_pickup
     
-def print_links(links):
-    li = [follow_link(links,1,i) for i in range(len(links))]
-    print(li)
-
-# example = [3,8,9,1,2,5,4,6,7]
-# example_links = build_links(example)
-# test = linked_cups(example_links,10,example[0])
+t0 = time.time()
 
 cups = [7,1,6,8,9,2,5,4,3] + list(range(10,1000001))
 links = build_links(cups)
 ans2 = linked_cups(links,10000000,cups[0])
-x = follow_link(ans2,1,1)
-y = follow_link(ans2,1,2)
+x = ans2[1]
+y = ans2[x]
 print(float(x)*y)
+print(f'Total time: {round(time.time()-t0,2)} seconds')
 
 # Day 24
 tiles = [line.strip() for line in open('Day 24.txt','r').readlines()]
