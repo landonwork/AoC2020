@@ -1490,7 +1490,7 @@ for n in range(len(allergens)):
         if i == ind:
             continue
         if ingredient in allergen_locs[keys[i]]:
-            print('Removing...')
+            # print('Removing...')
             allergen_locs[keys[i]].remove(ingredient)
     lens = [len(allergen_locs[key]) for key in keys]
     
